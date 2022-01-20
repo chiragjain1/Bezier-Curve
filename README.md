@@ -9,4 +9,5 @@ Bezier Curve uses a set of control points for deciding its ‘curve’. In this 
 - The drive maintains its stability using PID  control algorithm. Specifically : PD control algorithm(as I have not used Integral ).The Gyro sensor is connected to an Atmega328p chip and sends its data to the Atmega328p, which in turn, uses UART to send the data to the STM.The 'yaw' has a range of 0~200 degrees.  
 - The encoder used have a PPR of 1024 and are placed perpendicular to each other,in the center of the drive. This ensures that wheel-slippage doesn't affect the estimated position and gives the absolute x and y of the drive in the world frame.
 - The drive traces out a semi circle of 2 metre diameter using 4-control point algorithm.
+- A wireless controller using Zigbee/Bluetooth(works with both) is also used for switching between Curve tracing and Joystick Control 
 
