@@ -2,8 +2,8 @@
 #include <stm32f407xx.h>
 #include <math.h>
 #include "stm32f4xx_roboclaw.h"
-//#include "stm32f4xx_lcd.h"
 
+//The variables used for controller(ps)
 #define PS_L1 0
 #define PS_R1 1
 #define PS_L2 2
@@ -22,8 +22,8 @@
 #define PS_SELECT 15
 
 
-int xj1=0,yj1=0,xj2=0,yj2=0,pot1=0,pot2=0,pot3=0,pot4=0,pwm_range=60;							//analog values(serially received from remote);
-int butt[16]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};									//digital values(serially received from remote);
+int xj1=0,yj1=0,xj2=0,yj2=0,pot1=0,pot2=0,pot3=0,pot4=0,pwm_range=60;							//analog values(serially received from remote)
+int butt[16]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};									//digital values(serially received from remote)
 uint8_t RX[16]={100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100};
 int RX_range=200,RX_raw=255,RX_ad=255,RX_count=0;
 uint8_t TX[16]={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
@@ -93,28 +93,43 @@ int p0y=0,p1y=00,p2y=200,p3y=200;
 void main (void)
  {
       RCC->APB2ENR |= (1<<14);//system configuration clock for motor driver
-      //clock_confg();//pll
+      clock_confg();//pll
 
       all_init();
 
-      //  lcd_port_init();
-  //lcd_init();
 
       while(1)
       {
-          receive();
+          receive();//receive values from the controller
+          
+          //Calling the timer functions for reading the encoder values,which provide the x&y co-ordinate
           timer_1_encoder_init();
           timer_4_encoder_init();
-          gyropack(); //calling all gyro functions
           encoder1_read = encoder1_value()/5;//TIM4
           encoder2_read = encoder2_value()/5;//TIM1
-          
+
+          gyropack(); //calling all gyro functions
+
+          /*
+          Calling the functions for reading the encoder values,which provide the x&y co-ordinate:
+          Initially, the timers for encoders are initialised
+          Then, we read the encoder values and store them
+          And then, we calculate the absolute distance that the drive has covered
+          */
+          //initialising the timer
+          timer_1_encoder_init();
+          timer_4_encoder_init();
+          encoder1_read = encoder1_value()/5;//TIM4
+          encoder2_read = encoder2_value()/5;//TIM1         
           encoder1_distance = fabs(encoder1_read);
           encoder2_distance = fabs(encoder2_read);
 
-          total_distance = encoder1_distance+encoder2_distance;
+          total_distance = encoder1_distance+encoder2_distance; 
           true_distance = encoder1_read+encoder2_read;
-
+          /*
+            gamma is the proportion by which the curve traces itself between the control points
+            It varies from 0~1 and when it reaches 1,speed is 0
+          */
           if(gamma>1)
           {
               gamma=1;
@@ -130,21 +145,9 @@ void main (void)
           theta_error_x = encoder2_read - (pow(gamma_inv,3)*p0x + 3*pow(gamma_inv,2)*gamma*p1x + 3*gamma_inv*pow(gamma,2)*p2x + pow(gamma,3)*p3x);
           theta_error_y = encoder1_read - (pow(gamma_inv,3)*p0y + 3*pow(gamma_inv,2)*gamma*p1y + 3*gamma_inv*pow(gamma,2)*p2y + pow(gamma,3)*p3y);
           theta_error = atan2(theta_error_y,theta_error_x)*180/M_PI;
-         // if(total_distance>200)
-          {
-           // drive_equation_rtheta(0,theta_error);
-
-          }
-         // else
           {
             drive_equation_rtheta(rspeed,theta_error);
           }
-         // drive_equation(00,00,correct_gyro);
-           // lcd_print(1,1,encoder1_read,5);
-           // lcd_print(2,2,encoder2_read,5);
-
-          
-      }
   }
 
 void drive_equation_rtheta(double r,double theta)
@@ -153,8 +156,7 @@ void drive_equation_rtheta(double r,double theta)
     theta = theta*M_PI/180;
     x = r*cos(theta);
     y = r*sin(theta);
-    //drive_equation(y,x,correct_gyro);
-    drive_equation(0,0,correct_gyro);
+    drive_equation(y,x,correct_gyro);
 }
 void drive_equation(double A_x,double A_y,double ang_s)
 {
@@ -164,7 +166,7 @@ void drive_equation(double A_x,double A_y,double ang_s)
         
     driveM1(129,F3);//F1
     driveM2(128,F2);//F2
-    driveM1(128,F1);//F3//zigbee ps
+    driveM1(128,F1);//F3
 }
 
 void port_d_timer_init()
@@ -446,11 +448,6 @@ void USART1_IRQHandler()
 	if ((RX_raw>200) && (RX_raw<255))//201 to 216 for addresses of analog values, 231 to 246 for buttons;
 	{
 		RX_ad=RX_raw;
-//		if ((RX_raw>210) && (RX_raw<227))
-//		{
-//			uint8_t r_temp0=(RX_raw-211);
-//			butt_rel[r_temp0]=1;
-//		}
 
 		if ((RX_raw>230) && (RX_raw<247))
 		{
@@ -471,9 +468,6 @@ void USART1_IRQHandler()
 void all_init()
 {
       usart1rx_init();//ps
-
-
-
       port_d_timer_init();//encoder 1
       port_e_timer_init();//encoder 2
       timer_1_encoder_init();
@@ -484,7 +478,7 @@ void all_init()
       start_pt = funct_val;
 
 }
-
+//Lidar functions for future use,hopefully
 void uart4rx_init()
 {
     RCC->APB1ENR |= (1<<19);
