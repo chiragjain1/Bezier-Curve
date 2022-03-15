@@ -11,3 +11,6 @@ Bezier Curve uses a set of control points for deciding its ‘curve’. In this 
 - The drive traces out a semi circle of 2 metre diameter using 4-control point algorithm.
 - A wireless controller using Zigbee/Bluetooth(works with both) is also used for switching between Curve tracing and Joystick Control 
 
+# Future-work:
+- Two 1-D [Lidars](http://en.benewake.com/product/detail/5c345cc2e5b3a844c472329a) are mounted on the X and Y axis of the drive. Currently, they only act as a proximity sensor for obstacle avoidance(if the drive gets too close to an obstacle,it stops moving).
+- These lidars can also be used to obtain the absolute position of the drive in an environment,combining these with the relative positional data obtained from the encoders and IMU, SLAM can also be implemented.
